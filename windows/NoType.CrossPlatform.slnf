@@ -1,0 +1,16 @@
+{
+  "solution": {
+    "path": "NoType.sln",
+    "projects": [
+      "src\\NoType.Abstractions\\NoType.Abstractions.csproj",
+      "src\\NoType.App\\NoType.App.csproj",
+      "src\\NoType.Core\\NoType.Core.csproj",
+      "src\\NoType.Dictionary\\NoType.Dictionary.csproj",
+      "src\\NoType.Speech\\NoType.Speech.csproj",
+      "src\\NoType.Testing\\NoType.Testing.csproj",
+      "tests\\NoType.App.Tests\\NoType.App.Tests.csproj",
+      "tests\\NoType.Core.Tests\\NoType.Core.Tests.csproj",
+      "tests\\NoType.Dictionary.Tests\\NoType.Dictionary.Tests.csproj"
+    ]
+  }
+}

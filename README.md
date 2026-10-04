@@ -1,10 +1,10 @@
-# Murmur YouTube
+# NoType
 
 Push-to-talk dictation for macOS. Hold a key, talk, release — cleaned-up text lands in
-whatever text field has focus. A Wispr Flow-shaped app, built native and fully on-device.
+whatever text field has focus. Built native and fully on-device, with a Liquid Glass
+interface that follows the system's light and dark appearance.
 
-**Status:** working skeleton. Builds, launches, arms the hotkey, transcribes, injects.
-Branding and the LLM cleanup tier are the next passes.
+Requires macOS 26 or later and Xcode 26 or later to build.
 
 ---
 
@@ -13,12 +13,12 @@ Branding and the LLM cleanup tier are the next passes.
 This app is built to run alongside other dictation tools without colliding with them, which
 is not automatic on macOS and is worth understanding before changing anything:
 
-- **Bundle ID `ai.pivotstudio.murmur-youtube`** — TCC keys Accessibility and Microphone
+- **Bundle ID `com.notype.app`** — TCC keys Accessibility and Microphone
   grants to the bundle ID, so granting or revoking a permission here has no effect on any
   other app, and vice versa.
-- **Executable `MurmurYouTube`** — distinct enough that `pkill -x MurmurYouTube` cannot
+- **Executable `NoType`** — distinct enough that `pkill -x NoType` cannot
   match a differently-named binary. The `Makefile` only ever targets `$(EXEC)`.
-- **Hotkey is configurable** (Right ⌥ / fn / Right ⌘) precisely because another tool may
+- **Hotkey is configurable** (fn by default, or Right ⌥ / Right ⌘) precisely because another tool may
   already own the key you'd reach for first. The event tap inspects only its own keycode
   and passes everything else through untouched.
 
@@ -40,7 +40,14 @@ Then grant two permissions — neither is optional, and neither can be requested
 | **Accessibility** | System Settings ▸ Privacy & Security ▸ Accessibility | The `CGEventTap` that sees the hotkey, and the AX text insert |
 | **Microphone** | Prompted on first dictation | Audio capture |
 
-Restart Murmur YouTube after granting Accessibility. Then hold **Right ⌥** and talk.
+Restart NoType after granting Accessibility. Then hold **fn** and talk.
+
+> **Set System Settings ▸ Keyboard ▸ "Press 🌐 key to" → Do Nothing.** NoType deliberately
+> passes fn through (swallowing it would break fn+arrow and fn+delete), so if macOS also has
+> an action bound to it, the emoji picker or system dictation opens alongside NoType.
+
+If you press the key by accident and say nothing, the recording is discarded and the pill
+closes by itself after 6 seconds; letting go of the key closes it immediately.
 
 ### Why grants survive rebuilds here
 
@@ -56,8 +63,8 @@ grants with no re-prompt.
 If a grant ever does get wedged, reset that one row and re-add — never toggle:
 
 ```bash
-tccutil reset Accessibility ai.pivotstudio.murmur-youtube
-tccutil reset Microphone   ai.pivotstudio.murmur-youtube
+tccutil reset Accessibility com.notype.app
+tccutil reset Microphone   com.notype.app
 ```
 
 Always pass the bundle ID. A bare `tccutil reset Accessibility` wipes **every** app on the
@@ -116,8 +123,8 @@ two components most likely to change can change without touching anything else.
 ### Layout
 
 ```
-Sources/MurmurYouTube/
-├── MurmurYouTubeApp.swift              @main, AppDelegate, MenuBarExtra
+Sources/NoType/
+├── NoTypeApp.swift              @main, AppDelegate, MenuBarExtra
 ├── Core/
 │   ├── DictationController.swift   state machine, wires everything
 │   ├── HotkeyMonitor.swift         CGEventTap on .flagsChanged
@@ -170,8 +177,6 @@ change.
    Needs AX read of `kAXSelectedTextAttribute` plus an LLM round-trip.
 3. **Personal dictionary.** Names and jargon the ASR keeps missing. `SpeechAnalyzer`
    supports this through `AnalysisContext` / `SFCustomLanguageModelData`.
-4. **Branding.** `Brand` in `HUDView.swift` is a two-color placeholder gradient. App icon,
-   real palette, HUD motion design, onboarding.
 5. **Onboarding.** A first-run window that walks through both permissions instead of
    relying on the menu's "Grant…" items.
 6. **Developer ID signing + notarization.** Ends the TCC-reset churn and makes the app
@@ -183,7 +188,7 @@ change.
 
 Driven with a synthetic Right ⌥ hold (`scratchpad/ptt/ptt2.swift` posts `flagsChanged`
 events) and confirmed via `/usr/bin/log show --predicate 'subsystem ==
-"ai.pivotstudio.murmur-youtube"'`:
+"com.notype.app"'`:
 
 - Builds clean under Swift 6 strict concurrency.
 - Signs with Developer ID; grants survive rebuild + reinstall.
