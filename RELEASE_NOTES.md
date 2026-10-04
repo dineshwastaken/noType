@@ -1,89 +1,88 @@
-# NoType 0.1.0
+# NoType 1.0
 
-October 2026. The first release under the NoType name, with an interface rebuilt on Apple's
-Liquid Glass and the fixes that came out of using it day to day. Requires macOS 26 or later.
+Hold a key, talk, and let go: NoType types what you said, cleaned up, into whatever app you
+were using. Speech recognition runs on your computer, so your voice never leaves it. This is
+the first release.
 
-## What's new
+## Dictation anywhere
 
-### NoType lives in the menu bar
+Hold fn on a Mac (Right Ctrl on Windows), speak, and release. Apple's on-device engine
+streams text while you talk, so the words are usually ready the moment you let go. NoType
+removes filler words like "um", fixes spacing and punctuation, and understands "new line",
+"new paragraph", "open paren" and "close paren".
 
-NoType no longer sits in the Dock. Hold fn anywhere to dictate; the menu bar icon opens the
-main window and Settings. Closing the window leaves NoType running, because the hotkey only
-works while it runs. Turn on Settings ▸ Open at login and you won't have to think about it.
-If you'd rather have the Dock icon, Settings ▸ Show in Dock brings it back.
+If you press the key by accident and say nothing, NoType discards the recording after 6
+seconds and types nothing. Once you've started speaking, pauses never end the recording;
+only letting go does.
 
-### A pill under the notch
+## A pill under the notch
 
-While you dictate, a dark glass pill drops down from the notch with your words as you say
-them. It retracts into the notch when you let go. Its top edge sits 8 pt below the notch,
-centred on it; on a display without a notch it sits under the menu bar instead. With Reduce
-Motion on, it fades in and out.
+While you dictate, a dark glass pill drops out of the notch and shows your words as you say
+them, then slides back up when you let go. It sits 8 pt below the notch, centred on it, and
+stays readable over any window or wallpaper. On a display without a notch it appears under
+the menu bar. With Reduce Motion on, it fades instead.
 
-The pill uses smoke-tinted glass so the text stays readable over any wallpaper or window,
-light or dark.
+## Lives in the menu bar
 
-### Liquid Glass throughout
+NoType has no Dock icon. Its menu bar icon opens the main window and Settings, and closing
+the window leaves it running so the key keeps working. Turn on Open at login and it starts
+with your Mac. Show in Dock is there if you want the icon back.
 
-The main window has a sidebar for Transcriptions and Dictionary, search in the toolbar, and
-a recorder bar floating at the bottom: one glass capsule holding the mic button, a live
-waveform, the status and a timer. Settings uses the standard macOS layout. Light and dark
-mode follow the system, and Settings ▸ Appearance can pin either one. The app icon is new
-too.
+## Liquid Glass design
 
-### fn is the push-to-talk key
+The main window follows Apple's Liquid Glass design: a sidebar for Transcriptions and
+Dictionary, search in the toolbar, and a recorder bar floating at the bottom with the mic
+button, a live waveform, status and timer. Light and dark mode follow the system, and
+Settings ▸ Appearance can fix either one.
 
-Every Mac keyboard has fn in the same corner. Set System Settings ▸ Keyboard ▸ "Press 🌐 key
-to" to Do Nothing, or the emoji picker will open alongside NoType. Right ⌥ and Right ⌘ are
-still available in Settings.
+## Your history and dictionary
 
-### Accidental presses clean up after themselves
+Every dictation is saved in a searchable history, with copy and delete on each entry. The
+dictionary teaches NoType words it gets wrong. Add a term ("Anthropic") to steer
+recognition, or a correction ("cloud code" becomes "Claude Code") that is applied every
+time. Corrections also catch run-together and hyphenated forms such as "CloudCode", warn you
+when an entry could match ordinary words, and show in the history whenever they fire. The
+dictionary is a plain text file you can also edit by hand.
 
-Letting go of the key closes the pill straight away. If you press it and say nothing, NoType
-discards the recording after 6 seconds and types nothing. The same applies to a key release
-the app missed or a mic button left running.
+## Smart cleanup
 
-### Voice commands
+Turn on Smart cleanup and Apple's on-device language model tidies each dictation: it
+formats spoken lists and applies corrections like "Tuesday, actually Wednesday". If the
+model is unavailable or slow, NoType falls back to the standard cleanup.
 
-Say "new line" or "new paragraph" for line breaks, and "open paren" and "close paren" for
-brackets. Punctuation comes from speaking naturally. NoType strips um, uh, erm and hmm.
-With Smart cleanup on, the on-device model also tries to format spoken lists and apply
-corrections like "Tuesday, actually Wednesday", though it doesn't always get them.
+## Two speech engines
 
-## Fixes
+Apple's engine is the default and needs no download. Parakeet, a second on-device engine
+that runs on the Neural Engine, is a one-time 470 MB download from the menu bar. Compare
+mode runs every installed engine on the same recording and shows the results side by side
+with their timings; nothing is typed in that mode.
 
-- Engine comparison could hang for minutes. If Parakeet's models weren't installed, a
-  comparison started their one-time 470 MB download after the recording had ended, with no
-  progress shown. Comparison now skips an engine that isn't installed and says so. Use
-  "Download Parakeet models…" in the menu bar to install it first.
-- An interrupted model download counted as installed. NoType now checks for every model
-  file and the vocabulary before trusting a download.
-- A skipped or failed engine showed up as the "fastest" in comparison results. Only
-  engines that returned text are ranked now.
-- Changing the hotkey before granting Accessibility left it dead until a relaunch. The
-  hotkey now arms itself within a second of the grant, whatever the order.
-- The waveform barely moved for quiet microphones. It now responds to quieter input, and
-  the silence check treats about −42 dBFS as speech.
-- The recorder bar's timer could wrap onto two lines.
+## Requirements
 
-## Removed
+- macOS 26 or later on Apple silicon. NoType needs Accessibility permission to see the key
+  and type text, and Microphone permission.
+- On macOS, set System Settings ▸ Keyboard ▸ "Press 🌐 key to" to Do Nothing, or the emoji
+  picker opens alongside NoType.
+- Windows 10 or 11 with the .NET 10 SDK to build, and the 660 MB Parakeet model.
 
-The old HTML dashboard, which nothing opened any more, and its `notype://clear` link, which
-any web page could have used to wipe your history without asking. `notype://show` still
-opens the comparison window.
+## Installing
 
-## For developers
+Point your coding agent at the repository and ask it to follow
+`skills/install-notype/SKILL.md`, or follow the steps in the README.
 
-- Building now needs full Xcode. In the macOS 27 SDK, `@State` and swift-testing's `@Test`
-  are macros whose plugins only ship with Xcode.
+## Building from source
+
+- The macOS app needs full Xcode 26 or later; Command Line Tools alone can't build it.
 - `make install` signs with a Developer ID or Apple Development certificate when one is in
-  your keychain. With a stable signature, macOS keeps the Microphone and Accessibility
-  grants across rebuilds. Ad-hoc builds still lose them every time.
-- If the Accessibility switch shows on but the hotkey does nothing, the entry belongs to an
-  older signature. Remove NoType from the list and add it again.
+  your keychain. With a stable signature, macOS keeps NoType's permissions across rebuilds;
+  ad-hoc builds lose them each time.
 
 ## Known limitations
 
 - NoType has to be running for the hotkey to work.
-- "next line", "comma" and "period" are not commands.
-- Bullet points and "scratch that" only work through Smart cleanup, and not reliably.
-- The Windows port has been renamed to NoType but still hasn't been tried on real hardware.
+- "comma", "period" and "next line" are not commands; punctuation comes from speaking
+  naturally.
+- Bullet points and "scratch that" depend on Smart cleanup and don't always work.
+- The Windows app builds and passes its automated tests but hasn't been used on a real PC
+  yet. Its typing into apps, microphone handling and hotkey are untested on real hardware.
+- Neither app is notarized or code-signed for distribution.

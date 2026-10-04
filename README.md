@@ -83,7 +83,7 @@ Punctuation comes from speaking naturally, and filler words like "um" are remove
 
 ## More
 
-- [RELEASE_NOTES.md](RELEASE_NOTES.md): what changed in this release.
+- [RELEASE_NOTES.md](RELEASE_NOTES.md): everything in NoType 1.0.
 - [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md): architecture and design decisions for the
   macOS app.
 - [windows/README.md](windows/README.md) and
@@ -93,6 +93,5 @@ Punctuation comes from speaking naturally, and filler words like "um" are remove
 ## Credits
 
 NoType started as a fork of [murmur-youtube](https://github.com/per-simmons/murmur-youtube)
-by Pat Simmons, who wrote the dictation engine, the dictionary and the Windows app. This
-version renames it, rebuilds the macOS interface and adds the fixes listed in the release
-notes.
+by Pat Simmons, who wrote the dictation engine, the dictionary and the Windows app. NoType
+builds on that work with its own macOS interface.
