@@ -1,3 +1,4 @@
+import ServiceManagement
 import SwiftUI
 
 /// Settings — opens on ⌘, via the standard `Settings` scene, so the system wires up the menu
@@ -6,6 +7,8 @@ import SwiftUI
 struct SettingsWindow: View {
     @Bindable var controller: DictationController
     @State private var settings = Settings.shared
+    @State private var opensAtLogin = SMAppService.mainApp.status == .enabled
+    @State private var loginItemError: String?
 
     var body: some View {
         Form {
@@ -52,7 +55,12 @@ struct SettingsWindow: View {
                     ?? "Strips fillers, fixes spacing and punctuation. The dictionary's corrections run either way.")
             }
 
-            Section("General") {
+            Section {
+                Toggle("Open at login", isOn: Binding(
+                    get: { opensAtLogin },
+                    set: { setOpensAtLogin($0) }
+                ))
+                Toggle("Show in Dock", isOn: $settings.showInDock)
                 Picker("Appearance", selection: $settings.appearance) {
                     ForEach(AppearanceChoice.allCases, id: \.self) { choice in
                         Text(choice.displayName).tag(choice)
@@ -60,6 +68,12 @@ struct SettingsWindow: View {
                 }
                 .pickerStyle(.segmented)
                 Toggle("Play sounds", isOn: $settings.soundEnabled)
+            } header: {
+                Text("General")
+            } footer: {
+                note(loginItemError
+                    ?? "NoType runs from the menu bar. It has to be running for the hotkey to work — "
+                    + "Open at login takes care of that.")
             }
         }
         .formStyle(.grouped)
@@ -67,6 +81,27 @@ struct SettingsWindow: View {
         .frame(width: DS.Size.settingsWidth)
         .fixedSize(horizontal: false, vertical: true)
         .tint(DS.Color.accent)
+    }
+
+    /// Registers NoType as a login item with macOS, so it also appears (and can be turned
+    /// off) in System Settings ▸ General ▸ Login Items.
+    private func setOpensAtLogin(_ enabled: Bool) {
+        do {
+            if enabled {
+                try SMAppService.mainApp.register()
+            } else {
+                try SMAppService.mainApp.unregister()
+            }
+            loginItemError = nil
+        } catch {
+            loginItemError = "Couldn't change the login item: \(error.localizedDescription)"
+        }
+        let status = SMAppService.mainApp.status
+        opensAtLogin = status == .enabled
+        if status == .requiresApproval {
+            loginItemError = "Approve NoType in System Settings ▸ General ▸ Login Items."
+            SMAppService.openSystemSettingsLoginItems()
+        }
     }
 
     private func note(_ text: String) -> some View {

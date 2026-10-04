@@ -5,7 +5,8 @@ import Foundation
 // Renders AppIcon.icns from code — no design tool, no binary asset to keep in sync with
 // the app palette. Run: make icon
 
-// Matches `DS.Color.accent` / `accentSoft` (light values) in DesignSystem.swift.
+// `accent` matches `DS.Color.accent` (light value) in DesignSystem.swift; the rest of the
+// gradient exists only in the icon.
 let deep = NSColor(srgbRed: 0x31/255.0, green: 0x2E/255.0, blue: 0x81/255.0, alpha: 1)
 let accent = NSColor(srgbRed: 0x4F/255.0, green: 0x46/255.0, blue: 0xE5/255.0, alpha: 1)
 let accentSoft = NSColor(srgbRed: 0x7C/255.0, green: 0x8C/255.0, blue: 0xFF/255.0, alpha: 1)

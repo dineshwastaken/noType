@@ -17,7 +17,7 @@ struct DictationRun: Codable, Sendable, Identifiable {
     /// Release → final text ready. This is the latency you actually feel.
     let processSeconds: Double
     let text: String
-    /// Shared by every engine that processed the same recording, so the dashboard can
+    /// Shared by every engine that processed the same recording, so the comparison window can
     /// present them as one side-by-side comparison instead of unrelated rows.
     var group: String?
 
@@ -64,11 +64,8 @@ struct DictationRun: Codable, Sendable, Identifiable {
     }
 }
 
-/// Appends every dictation to a JSONL file and regenerates a dashboard beside it.
-///
-/// The dashboard is a plain file with a meta-refresh rather than a served page: `file://`
-/// can't fetch its own data directory without tripping CORS, so instead of the page pulling
-/// data, the app pushes a freshly rendered page after each run and the browser just reloads.
+/// Appends every dictation to a JSONL file, which the transcription list and the comparison
+/// window read through `RunStore`.
 @MainActor
 enum RunLog {
     static var directory: URL {
@@ -78,18 +75,15 @@ enum RunLog {
         return base
     }
 
-    static var dashboardURL: URL { directory.appendingPathComponent("dashboard.html") }
     private static var runsURL: URL { directory.appendingPathComponent("runs.jsonl") }
 
     static func record(_ run: DictationRun) {
         append(run)
-        regenerate()
         RunStore.shared.reload()
     }
 
     static func record(_ runs: [DictationRun]) {
         runs.forEach(append)
-        regenerate()
         RunStore.shared.reload()
     }
 
@@ -117,15 +111,6 @@ enum RunLog {
         }
     }
 
-    static func regenerate() {
-        let runs = load()
-        try? DashboardHTML.render(
-            runs: runs,
-            compareMode: Settings.shared.compareMode,
-            key: Settings.shared.pushToTalkKey.displayName
-        ).write(to: dashboardURL, atomically: true, encoding: .utf8)
-    }
-
     /// Deletes one run.
     static func delete(_ run: DictationRun) {
         delete(ids: [run.id])
@@ -143,7 +128,6 @@ enum RunLog {
 
     static func clear() {
         try? FileManager.default.removeItem(at: runsURL)
-        regenerate()
         RunStore.shared.reload()
     }
 
@@ -162,7 +146,6 @@ enum RunLog {
         try? (body.isEmpty ? "" : body + "\n")
             .write(to: runsURL, atomically: true, encoding: .utf8)
 
-        regenerate()
         RunStore.shared.reload()
     }
 }

@@ -89,6 +89,18 @@ final class Settings {
         NSApp.appearance = appearance.nsAppearance
     }
 
+    /// NoType lives in the menu bar; the Dock icon is opt-in.
+    var showInDock: Bool {
+        didSet {
+            defaults.set(showInDock, forKey: Keys.showInDock)
+            applyActivationPolicy()
+        }
+    }
+
+    func applyActivationPolicy() {
+        NSApp.setActivationPolicy(showInDock ? .regular : .accessory)
+    }
+
     private let defaults = UserDefaults.standard
 
     private enum Keys {
@@ -99,6 +111,7 @@ final class Settings {
         static let smartCleanup = "smartCleanup"
         static let compareMode = "compareMode"
         static let appearance = "appearance"
+        static let showInDock = "showInDock"
     }
 
     private init() {
@@ -114,5 +127,6 @@ final class Settings {
         compareMode = defaults.object(forKey: Keys.compareMode) as? Bool ?? false
         soundEnabled = defaults.object(forKey: Keys.soundEnabled) as? Bool ?? true
         appearance = AppearanceChoice(rawValue: defaults.string(forKey: Keys.appearance) ?? "") ?? .system
+        showInDock = defaults.object(forKey: Keys.showInDock) as? Bool ?? false
     }
 }

@@ -25,8 +25,6 @@ enum DS {
     enum Color {
         /// The NoType tint: a deep indigo-blue. Used for selection, links and the idle mic.
         static let accent = dynamic(light: 0x4F46E5, dark: 0x8B85FF)
-        /// A lighter companion, used only in the waveform and the icon gradient.
-        static let accentSoft = dynamic(light: 0x7C8CFF, dark: 0xA8B4FF)
 
         /// Recording. The only red in the app.
         static let record = SwiftUI.Color.red
@@ -115,7 +113,6 @@ enum DS {
         static let base: CGFloat = 12
         static let roomy: CGFloat = 16
         static let wide: CGFloat = 20
-        static let section: CGFloat = 28
     }
 
     // MARK: - Radius

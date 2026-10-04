@@ -11,6 +11,9 @@ struct NoTypeApp: App {
         Window("NoType", id: "main") {
             MainWindow(controller: delegate.controller)
         }
+        // A menu bar app: launching starts it quietly. The window opens from the menu bar
+        // item, from double-clicking the app, and once on the very first launch.
+        .defaultLaunchBehavior(.suppressed)
         .defaultSize(width: 920, height: 640)
         .windowResizability(.contentMinSize)
         .commands {
@@ -28,11 +31,11 @@ struct NoTypeApp: App {
             SettingsWindow(controller: delegate.controller)
         }
 
-        // Secondary now: status and the hotkey while you're working in another app.
+        // The app's home: status, the main window, settings and quick toggles.
         MenuBarExtra {
             MenuContent(controller: delegate.controller)
         } label: {
-            Image(systemName: delegate.controller.state.isActive ? "waveform.circle.fill" : "waveform")
+            MenuBarIcon(controller: delegate.controller, delegate: delegate)
         }
 
         Window("Engine comparison", id: "comparison") {
@@ -49,25 +52,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hud: HUDPanel?
     private var stateObservation: NSObjectProtocol?
 
+    /// Opens the main window. Set by the menu bar icon, the one view that exists for the
+    /// app's whole lifetime and so can hand out SwiftUI's `openWindow` to AppKit callers.
+    var openMainWindow: (() -> Void)?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // A regular app now: dock icon, app menu, standard windows. The HUD is still a
-        // non-activating panel, so dictating into another app never steals its focus — that
-        // property belongs to the panel, not to the activation policy.
-        NSApp.setActivationPolicy(.regular)
+        // Menu bar app by default (LSUIElement); the Dock icon is a setting. The HUD is a
+        // non-activating panel either way, so dictating into another app never steals its
+        // focus — that property belongs to the panel, not to the activation policy.
+        Settings.shared.applyActivationPolicy()
         Settings.shared.applyAppearance()
 
         hud = HUDPanel(controller: controller)
 
+        // If the tap can't be installed yet, the controller keeps waiting for the grant
+        // and arms itself when it lands; this only raises the system prompt.
         if !controller.activate() {
             Permissions.promptForAccessibility()
-            // The tap can only be created once the user grants Accessibility, and there's
-            // no notification for that — poll until it takes.
-            retryActivation()
         }
-
-        // Write the dashboard up front so the menu item always opens something, even
-        // before the first dictation.
-        RunLog.regenerate()
 
         // Parakeet's models take ~20s to load from disk, and that cost lands on whichever
         // dictation touches them first — so the first hold after every launch would stall
@@ -93,19 +95,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Log.app.info("NoType ready — hold \(Settings.shared.pushToTalkKey.displayName) to dictate")
     }
 
-    /// `notype://clear` and `notype://show`, used by the legacy HTML dashboard and
-    /// as a scriptable way to raise the window.
+    /// Double-clicking the app (or `open -a NoType`) while it's running shows the window —
+    /// with no Dock icon, that's the only way back to it besides the menu bar.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        if !hasVisibleWindows { openMainWindow?() }
+        return true
+    }
+
+    /// Closing the window leaves NoType running in the menu bar, which is where the hotkey
+    /// lives.
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false
+    }
+
+    /// `notype://show` raises the comparison window — a scriptable way in. There is
+    /// deliberately no URL that deletes anything: any web page can open a custom-scheme link.
     func application(_ application: NSApplication, open urls: [URL]) {
-        for url in urls where url.scheme == "notype" {
-            switch url.host {
-            case "clear":
-                RunLog.clear()
-                RunStore.shared.reload()
-            case "show":
-                Self.showComparisonWindow()
-            default:
-                break
-            }
+        for url in urls where url.scheme == "notype" && url.host == "show" {
+            Self.showComparisonWindow()
         }
     }
 
@@ -116,7 +123,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let existing = NSApp.windows.first(where: { $0.title == "Engine comparison" }) {
             existing.makeKeyAndOrderFront(nil)
         }
-        NSApp.activate(ignoringOtherApps: true)
+        NSApp.activate()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -142,14 +149,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func retryActivation() {
-        Task { @MainActor in
-            while !Permissions.hasAccessibility {
-                try? await Task.sleep(for: .seconds(1))
+}
+
+/// The menu bar icon. Also the bridge that lets AppKit code open the main window: it lives
+/// as long as the app does and has SwiftUI's `openWindow` in its environment.
+private struct MenuBarIcon: View {
+    @Bindable var controller: DictationController
+    let delegate: AppDelegate
+    @Environment(\.openWindow) private var openWindow
+
+    private static let hasLaunchedKey = "hasLaunchedBefore"
+
+    var body: some View {
+        Image(systemName: controller.state.isActive ? "waveform.circle.fill" : "waveform")
+            .onAppear {
+                delegate.openMainWindow = {
+                    openWindow(id: "main")
+                    NSApp.activate()
+                }
+                // Show the window once, on the very first launch, so a new user isn't left
+                // looking for an app with no Dock icon.
+                if !UserDefaults.standard.bool(forKey: Self.hasLaunchedKey) {
+                    UserDefaults.standard.set(true, forKey: Self.hasLaunchedKey)
+                    delegate.openMainWindow?()
+                }
             }
-            controller.activate()
-            Log.app.info("Accessibility granted — hotkey armed")
-        }
     }
 }
 
@@ -180,8 +204,26 @@ private struct MenuContent: View {
         }
     }
 
+    @Environment(\.openSettings) private var openSettings
+
     var body: some View {
         Text("Hold \(settings.pushToTalkKey.displayName) to dictate")
+
+        Divider()
+
+        Button("Open NoType") {
+            openWindow(id: "main")
+            NSApp.activate()
+        }
+        .keyboardShortcut("o")
+
+        Button("Settings…") {
+            // A menu bar app isn't active when its menu is clicked, so bring it forward or
+            // the Settings window opens behind whatever you were using.
+            NSApp.activate()
+            openSettings()
+        }
+        .keyboardShortcut(",")
 
         Divider()
 
@@ -224,7 +266,7 @@ private struct MenuContent: View {
         Button("Show comparison window") {
             RunStore.shared.reload()
             openWindow(id: "comparison")
-            NSApp.activate(ignoringOtherApps: true)
+            NSApp.activate()
         }
         .keyboardShortcut("d")
 

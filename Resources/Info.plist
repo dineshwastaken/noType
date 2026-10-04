@@ -20,8 +20,7 @@
 	<string>1</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
-	<!-- Lets the dashboard's Clear button call back into the app. A file:// page can't
-	     write files or talk to a process, but it can follow a custom-scheme link. -->
+	<!-- notype://show raises the comparison window, for scripting. -->
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -35,10 +34,10 @@
 	</array>
 	<key>LSMinimumSystemVersion</key>
 	<string>26.0</string>
-	<!-- A regular app: dock icon, app menu, standard windows. The menu bar item remains
-	     for status and the hotkey while you're working elsewhere, but it is secondary. -->
+	<!-- A menu bar app: no Dock icon, so none flashes at launch. Settings ▸ Show in Dock
+	     switches to a regular app at runtime for anyone who wants one. -->
 	<key>LSUIElement</key>
-	<false/>
+	<true/>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>

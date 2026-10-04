@@ -66,7 +66,7 @@ final class DictationController {
     private var feedTask: Task<[AudioChunk], Never>?
     private var audioContinuation: AsyncStream<AudioChunk>.Continuation?
 
-    /// Timestamps for the dashboard: when the key went down, and when it came up.
+    /// Timestamps for the history: when the key went down, and when it came up.
     private var holdStarted: Date?
     private var releasedAt: Date?
     private var engineName = ""
@@ -97,18 +97,50 @@ final class DictationController {
 
     // MARK: - Lifecycle
 
-    /// - Returns: `false` if the hotkey tap couldn't be installed (missing Accessibility).
+    /// Arms the hotkey. If the tap can't be installed — almost always because Accessibility
+    /// isn't granted for *this* signature yet — it keeps waiting and arms itself the moment
+    /// the grant lands, from any path: launch, or picking a different key in Settings.
+    ///
+    /// - Returns: `false` if the hotkey isn't armed yet.
     @discardableResult
     func activate() -> Bool {
         hotkey.key = Settings.shared.pushToTalkKey
         hotkey.onPress = { [weak self] in self?.beginDictation() }
         hotkey.onRelease = { [weak self] in self?.endDictation() }
-        return hotkey.start()
+        let armed = hotkey.start()
+        if armed {
+            permissionWait?.cancel()
+            permissionWait = nil
+        } else {
+            waitForAccessibility()
+        }
+        return armed
     }
 
     func deactivate() {
+        permissionWait?.cancel()
+        permissionWait = nil
         hotkey.stop()
         cancelDictation()
+    }
+
+    /// There's no notification for an Accessibility grant, so poll for it.
+    private var permissionWait: Task<Void, Never>?
+
+    private func waitForAccessibility() {
+        guard permissionWait == nil else { return }
+        permissionWait = Task { @MainActor [weak self] in
+            // Sleep first, so a tap that fails even with the grant in place retries once a
+            // second instead of spinning.
+            repeat {
+                try? await Task.sleep(for: .seconds(1))
+            } while !Task.isCancelled && !Permissions.hasAccessibility
+            guard let self, !Task.isCancelled else { return }
+            self.permissionWait = nil
+            if self.activate() {
+                Log.app.info("Accessibility granted — hotkey armed")
+            }
+        }
     }
 
     /// Re-arms the tap after the user picks a different push-to-talk key.
@@ -313,7 +345,7 @@ final class DictationController {
         capture.stop()
         audioContinuation?.finish()
         audioContinuation = nil
-        await feedTask?.value
+        _ = await feedTask?.value
         feedTask = nil
         await engine?.finish()
         engine = nil
@@ -323,11 +355,6 @@ final class DictationController {
     }
 
     // MARK: - Helpers
-
-    private func retainForComparison(_ chunk: AudioChunk) {
-        guard isComparing else { return }
-        recorded.append(chunk)
-    }
 
     /// Replays the recording through every engine and files the results as one group.
     ///
@@ -406,7 +433,7 @@ final class DictationController {
         if Settings.shared.soundEnabled { NSSound(named: "Glass")?.play() }
     }
 
-    /// Files the finished utterance for the dashboard.
+    /// Files the finished utterance in the transcription history.
     ///
     /// `processSeconds` is measured from key release, not from capture start — that's the
     /// wait the user actually experiences, and it's the only number on which a streaming
@@ -444,7 +471,7 @@ final class DictationController {
             // Apple streams text, so a non-empty transcript also counts as speech even if
             // the speaker was quiet.
             guard !self.heardVoice, self.transcript.isEmpty else { return }
-            Log.app.info("no voice within \(Self.silenceTimeout) — discarding recording")
+            Log.app.info("no voice within \(Self.silenceTimeout, privacy: .public) — discarding recording")
             WisprTrigger.release()
             self.holdStarted = nil
             self.releasedAt = nil

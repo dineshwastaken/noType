@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 import Carbon.HIToolbox
 import Foundation
 
@@ -90,7 +91,10 @@ final class HotkeyMonitor {
             },
             userInfo: refcon
         ) else {
-            Log.hotkey.error("tapCreate failed — Accessibility permission missing?")
+            // Says which of the two failures this is: no grant for this signature yet, or a
+            // grant that's present but the tap was still refused.
+            let trusted = AXIsProcessTrusted()
+            Log.hotkey.error("tapCreate failed — accessibility trusted: \(trusted, privacy: .public)")
             return false
         }
 

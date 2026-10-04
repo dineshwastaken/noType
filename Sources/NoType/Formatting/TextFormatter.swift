@@ -92,10 +92,3 @@ struct RuleBasedFormatter: TextFormatter {
         return text + "."
     }
 }
-
-/// No-op formatter, for comparing raw engine output against the cleanup pass.
-struct PassthroughFormatter: TextFormatter {
-    func format(_ raw: String) async -> String {
-        raw.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-}

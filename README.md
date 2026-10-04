@@ -37,10 +37,33 @@ Then grant two permissions — neither is optional, and neither can be requested
 
 | Permission | Where | Needed for |
 |---|---|---|
-| **Accessibility** | System Settings ▸ Privacy & Security ▸ Accessibility | The `CGEventTap` that sees the hotkey, and the AX text insert |
+| **Accessibility** | System Settings ▸ Privacy & Security ▸ Accessibility (macOS 27: "Device Control and Data Access") | The `CGEventTap` that sees the hotkey, and the AX text insert |
 | **Microphone** | Prompted on first dictation | Audio capture |
 
-Restart NoType after granting Accessibility. Then hold **fn** and talk.
+No restart is needed: NoType arms the hotkey within a second of the grant. Then hold **fn**
+and talk.
+
+If the switch shows on but the hotkey still does nothing, the entry belongs to an older
+signature. Remove NoType with **−** and add `/Applications/NoType.app` again with **+**;
+toggling the existing row doesn't help.
+
+NoType is a menu bar app. It has no Dock icon, and closing its window leaves it running,
+which it has to be for the hotkey to work. Open the window from the menu bar icon (or by
+double-clicking the app). **Settings ▸ Open at login** starts it with your Mac, and
+**Settings ▸ Show in Dock** brings the Dock icon back if you want it.
+
+### Voice commands
+
+| Say | Get |
+|---|---|
+| "new line" | a line break |
+| "new paragraph" | a blank line |
+| "open paren", "close paren" | ( ) |
+
+Punctuation comes from speaking naturally; "comma" and "period" are not commands. Filler
+words (um, uh, erm, hmm) are removed. With **Smart cleanup** on, the on-device model also
+tries to format spoken lists and apply self-corrections ("Tuesday, actually Wednesday"),
+on a best-effort basis.
 
 > **Set System Settings ▸ Keyboard ▸ "Press 🌐 key to" → Do Nothing.** NoType deliberately
 > passes fn through (swallowing it would break fn+arrow and fn+delete), so if macOS also has
@@ -124,22 +147,24 @@ two components most likely to change can change without touching anything else.
 
 ```
 Sources/NoType/
-├── NoTypeApp.swift              @main, AppDelegate, MenuBarExtra
+├── NoTypeApp.swift                 @main, AppDelegate, menu bar item and menu
 ├── Core/
-│   ├── DictationController.swift   state machine, wires everything
+│   ├── DictationController.swift   state machine, silence guard, wires everything
 │   ├── HotkeyMonitor.swift         CGEventTap on .flagsChanged
 │   ├── AudioCapture.swift          AVAudioEngine tap + format conversion + RMS
-│   └── TextInjector.swift          AX insert, pasteboard+⌘V fallback
-├── Transcription/
-│   ├── TranscriptionEngine.swift   protocol + AudioChunk
-│   └── AppleSpeechEngine.swift     SpeechAnalyzer / SpeechTranscriber
-├── Formatting/
-│   └── TextFormatter.swift         protocol + RuleBasedFormatter
+│   ├── TextInjector.swift          AX insert, pasteboard+⌘V fallback
+│   └── EngineComparison.swift      same audio through every installed engine
+├── Transcription/                  Apple SpeechAnalyzer, Parakeet (FluidAudio)
+├── Formatting/                     RuleBasedFormatter, on-device FoundationModelFormatter
+├── Dictionary/DictionaryStore.swift
 ├── UI/
-│   ├── HUDPanel.swift              non-activating floating panel
-│   └── HUDView.swift               waveform + live transcript, Brand palette
-└── Support/
-    ├── Settings.swift, Permissions.swift, Log.swift
+│   ├── DesignSystem.swift          every colour, size, glass and motion token
+│   ├── Components.swift            cards, chips, waveform, record button
+│   ├── MainWindow.swift            sidebar, transcriptions, recorder bar
+│   ├── DictionaryPanel.swift, SettingsWindow.swift, ComparisonWindow.swift
+│   ├── HUDPanel.swift              non-activating panel, positioned under the notch
+│   └── HUDView.swift               the pill: waveform + live transcript
+└── Support/                        Settings, Permissions, RunLog, Log
 ```
 
 ---
@@ -186,21 +211,19 @@ change.
 
 ## Verified
 
-Driven with a synthetic Right ⌥ hold (`scratchpad/ptt/ptt2.swift` posts `flagsChanged`
-events) and confirmed via `/usr/bin/log show --predicate 'subsystem ==
-"com.notype.app"'`:
+Checked on a MacBook Air (notch, macOS 27) with synthetic fn events, screenshots, and
+`/usr/bin/log show --predicate 'subsystem == "com.notype.app"'`:
 
-- Builds clean under Swift 6 strict concurrency.
-- Signs with Developer ID; grants survive rebuild + reinstall.
-- Launches as an accessory app, no Dock icon, menu bar item present.
-- Event tap arms on grant without a restart (the poller catches it).
-- Full state machine: `starting → listening → finishing → idle`, no errors.
-- `SpeechAnalyzer` starts; models already installed, no download stall.
-- Audio capture runs and converts native 48 kHz → 16 kHz for the engine.
-- HUD renders bottom-center at `{{790, 96}, {340, 76}}` without taking focus.
-- Silence produces an empty transcript and injects nothing.
+- Builds under Swift 6 strict concurrency; the dictionary vector tests pass.
+- Signed with an Apple Development certificate, the Accessibility grant survives rebuild
+  and reinstall, and the hotkey arms within a second of a fresh grant without a relaunch.
+- Runs as a menu bar app with no Dock icon.
+- Real speech: fn held 9.2 s, text ready 0.1 s after release, cleaned up and pasted.
+- A press with no speech is discarded after 6 s and nothing is typed.
+- The pill's top edge sits 8 pt below the notch, centred on it.
+- Comparison runs Apple and Parakeet on the same recording once Parakeet is installed.
 
-**Not yet verified:** speech → transcript → cleanup → injection. Synthetic key events
-can't produce audio, so this needs a human to hold the key and talk.
+Not verified by the automated run: the "new line" command spoken aloud (the code path is
+in `RuleBasedFormatter`).
 
-> `log` is shadowed in this shell — use `/usr/bin/log` explicitly or it returns nothing.
+> `log` may be shadowed in your shell; use `/usr/bin/log` explicitly or it returns nothing.

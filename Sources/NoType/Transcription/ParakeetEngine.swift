@@ -128,8 +128,6 @@ actor ParakeetModels {
     private var loaded: AsrManager?
     private var loadTask: Task<AsrManager, Error>?
 
-    var isLoaded: Bool { loaded != nil }
-
     /// Loads once; concurrent callers await the same task rather than racing to download.
     func manager() async throws -> AsrManager {
         if let loaded { return loaded }
