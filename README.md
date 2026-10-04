@@ -1,229 +1,98 @@
 # NoType
 
-Push-to-talk dictation for macOS. Hold a key, talk, release — cleaned-up text lands in
-whatever text field has focus. Built native and fully on-device, with a Liquid Glass
-interface that follows the system's light and dark appearance.
+Hold a key, talk, and let go. NoType turns what you said into cleaned-up text and types it
+into whatever app you're using. Speech recognition runs on your computer; your voice is not
+sent anywhere.
 
-Requires macOS 26 or later and Xcode 26 or later to build.
+On macOS it lives in the menu bar, uses Apple's Liquid Glass design, and shows your words in
+a small pill under the notch while you speak.
 
----
+| | macOS | Windows |
+|---|---|---|
+| Status | Works, in daily use | Builds and passes its tests; not yet tried on a real PC |
+| Needs | macOS 26 or later, Apple silicon, Xcode 26 or later to build | Windows 10/11, .NET 10 SDK to build |
+| Push-to-talk key | fn | Right Ctrl |
+| Speech engine | Apple's on-device engine; Parakeet optional | Parakeet (about 660 MB download) |
 
-## Coexisting with another dictation app
+## Install with an AI coding agent
 
-This app is built to run alongside other dictation tools without colliding with them, which
-is not automatic on macOS and is worth understanding before changing anything:
+The repo includes a setup skill that walks an agent through the whole install on either OS,
+including what to do when something goes wrong. Give your agent (Claude Code, Codex, Cursor
+or similar) this prompt:
 
-- **Bundle ID `com.notype.app`** — TCC keys Accessibility and Microphone
-  grants to the bundle ID, so granting or revoking a permission here has no effect on any
-  other app, and vice versa.
-- **Executable `NoType`** — distinct enough that `pkill -x NoType` cannot
-  match a differently-named binary. The `Makefile` only ever targets `$(EXEC)`.
-- **Hotkey is configurable** (fn by default, or Right ⌥ / Right ⌘) precisely because another tool may
-  already own the key you'd reach for first. The event tap inspects only its own keycode
-  and passes everything else through untouched.
-
-If you run more than one dictation app, give each a different push-to-talk key. Two apps on
-the same key both record, and whichever injects text will fight the other.
-
----
-
-## Quick start
-
-```bash
-make install     # builds, bundles, signs, copies to /Applications, launches
+```text
+Set up NoType on this computer from https://github.com/dineshwastaken/noType.
+Clone it, then follow skills/install-notype/SKILL.md exactly.
 ```
 
-Then grant two permissions — neither is optional, and neither can be requested silently:
+The agent does the checks, builds and verification. A few steps need you: anything that
+asks for your password, privacy permissions (Accessibility and Microphone on a Mac,
+microphone access on Windows), and large downloads. The agent stops and tells you exactly
+what to click when it reaches one.
 
-| Permission | Where | Needed for |
-|---|---|---|
-| **Accessibility** | System Settings ▸ Privacy & Security ▸ Accessibility (macOS 27: "Device Control and Data Access") | The `CGEventTap` that sees the hotkey, and the AX text insert |
-| **Microphone** | Prompted on first dictation | Audio capture |
+## Install by hand
 
-No restart is needed: NoType arms the hotkey within a second of the grant. Then hold **fn**
-and talk.
+The full steps, with fixes for every problem we know about, are in
+[skills/install-notype/SKILL.md](skills/install-notype/SKILL.md). The short version:
 
-If the switch shows on but the hotkey still does nothing, the entry belongs to an older
-signature. Remove NoType with **−** and add `/Applications/NoType.app` again with **+**;
-toggling the existing row doesn't help.
+### macOS
 
-NoType is a menu bar app. It has no Dock icon, and closing its window leaves it running,
-which it has to be for the hotkey to work. Open the window from the menu bar icon (or by
-double-clicking the app). **Settings ▸ Open at login** starts it with your Mac, and
-**Settings ▸ Show in Dock** brings the Dock icon back if you want it.
+1. Install Xcode from the App Store, then accept its licence:
+   `sudo xcodebuild -license accept`
+2. Build and install:
+   ```bash
+   git clone https://github.com/dineshwastaken/noType.git NoType
+   cd NoType
+   make install
+   ```
+3. Turn on NoType in System Settings ▸ Privacy & Security ▸ Accessibility (called "Device
+   Control and Data Access" on macOS 27), and allow the microphone when asked.
+4. In System Settings ▸ Keyboard, set "Press 🌐 key to" to **Do Nothing**.
+5. Hold fn, say something, let go.
 
-### Voice commands
+### Windows
 
-| Say | Get |
+1. Install the .NET 10 SDK.
+2. Build, then download the speech model (commands in the skill, step 4):
+   ```powershell
+   git clone https://github.com/dineshwastaken/noType.git NoType
+   cd NoType\windows
+   dotnet publish src/NoType.App/NoType.App.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true --output artifacts/publish
+   ```
+3. Run `artifacts\publish\NoType.App.exe --selftest`, then start the app. Windows may warn
+   that the app is unrecognised because it isn't code-signed.
+4. Hold Right Ctrl, say something, let go.
+
+## Using it
+
+Hold the key while you talk and release it when you're done. If you press it by accident and
+say nothing, NoType throws the recording away after 6 seconds.
+
+On a Mac, NoType has no Dock icon. Its menu bar icon opens the main window, which holds
+your transcription history, a dictionary for names and jargon it keeps getting wrong, and
+Settings. NoType has to be running for the key to work; Settings ▸ Open at login starts it
+with your Mac.
+
+| Say | You get |
 |---|---|
 | "new line" | a line break |
 | "new paragraph" | a blank line |
 | "open paren", "close paren" | ( ) |
 
-Punctuation comes from speaking naturally; "comma" and "period" are not commands. Filler
-words (um, uh, erm, hmm) are removed. With **Smart cleanup** on, the on-device model also
-tries to format spoken lists and apply self-corrections ("Tuesday, actually Wednesday"),
-on a best-effort basis.
+Punctuation comes from speaking naturally, and filler words like "um" are removed.
 
-> **Set System Settings ▸ Keyboard ▸ "Press 🌐 key to" → Do Nothing.** NoType deliberately
-> passes fn through (swallowing it would break fn+arrow and fn+delete), so if macOS also has
-> an action bound to it, the emoji picker or system dictation opens alongside NoType.
+## More
 
-If you press the key by accident and say nothing, the recording is discarded and the pill
-closes by itself after 6 seconds; letting go of the key closes it immediately.
+- [RELEASE_NOTES.md](RELEASE_NOTES.md): what changed in this release.
+- [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md): architecture and design decisions for the
+  macOS app.
+- [windows/README.md](windows/README.md) and
+  [docs/PARAKEET-WINDOWS.md](docs/PARAKEET-WINDOWS.md): the Windows app in depth.
+- [AGENTS.md](AGENTS.md): read this before changing the code.
 
-### Why grants survive rebuilds here
+## Credits
 
-TCC stores a *code-signing requirement* per entry, not just a path. An ad-hoc signature
-changes on every build, so the rebuilt binary stops satisfying the stored requirement —
-and the symptom is nasty: the Accessibility toggle still **shows as on** while the app is
-reported untrusted, and flipping it changes nothing because the stale row is the problem.
-
-The `Makefile` therefore signs with a stable Developer ID (auto-detected via
-`security find-identity`, falling back to ad-hoc). Verified: rebuild + reinstall keeps both
-grants with no re-prompt.
-
-If a grant ever does get wedged, reset that one row and re-add — never toggle:
-
-```bash
-tccutil reset Accessibility com.notype.app
-tccutil reset Microphone   com.notype.app
-```
-
-Always pass the bundle ID. A bare `tccutil reset Accessibility` wipes **every** app on the
-machine. Then quit System Settings entirely (⌘Q) before reopening — that pane caches its
-list and will otherwise show the row you just deleted.
-
-> **Keep the build out of iCloud.** `~/Desktop` and `~/Documents` are file-provider synced
-> on this machine; the sync engine can materialize/dematerialize files inside an `.app` and
-> corrupt its signature. `make install` puts the running copy in `/Applications`.
-
-Other targets: `make app` (bundle only), `make run` (run in place), `make clean`.
-
----
-
-## Architecture
-
-```
- hold key ─► HotkeyMonitor ──► DictationController ◄── Settings
-                                │
-                     ┌──────────┼──────────┐
-                     ▼          ▼          ▼
-              AudioCapture  HUDPanel   TranscriptionEngine
-                     │                      │
-                (AudioChunk) ──ordered──► AppleSpeechEngine
-                                            │
-                                       (transcript)
-                                            ▼
-                                      TextFormatter
-                                            ▼
-                                      TextInjector ─► focused app
-```
-
-### Decisions worth knowing
-
-**The HUD must never take focus.** `HUDPanel` is a `.nonactivatingPanel` with
-`canBecomeKey == false`. This is the load-bearing detail of the whole app: if the overlay
-took key status, the user's text field would lose focus and there'd be nothing left to
-inject into. Everything else is replaceable; this isn't.
-
-**The hotkey needs a `CGEventTap`, not `NSEvent`.** `fn` and left/right modifier
-discrimination don't surface through `NSEvent.addGlobalMonitorForEvents` or the Carbon
-hotkey API. A session event tap is the only way to see them — which is why Accessibility
-permission is a hard requirement rather than a nicety.
-
-**Audio ordering is explicit.** `AudioCapture` yields into an `AsyncStream` drained by a
-single task. Spawning a `Task` per buffer would be simpler and would silently corrupt the
-transcript, because unstructured tasks have no ordering guarantee.
-
-**Buffers are copied, never borrowed.** `AVAudioEngine` recycles the buffer it hands to a
-tap the instant the callback returns. `AudioChunk`'s `@unchecked Sendable` is only sound
-because `AudioCapture` always allocates fresh storage before handing off.
-
-**Two swappable seams.** `TranscriptionEngine` and `TextFormatter` are protocols so the
-two components most likely to change can change without touching anything else.
-
-### Layout
-
-```
-Sources/NoType/
-├── NoTypeApp.swift                 @main, AppDelegate, menu bar item and menu
-├── Core/
-│   ├── DictationController.swift   state machine, silence guard, wires everything
-│   ├── HotkeyMonitor.swift         CGEventTap on .flagsChanged
-│   ├── AudioCapture.swift          AVAudioEngine tap + format conversion + RMS
-│   ├── TextInjector.swift          AX insert, pasteboard+⌘V fallback
-│   └── EngineComparison.swift      same audio through every installed engine
-├── Transcription/                  Apple SpeechAnalyzer, Parakeet (FluidAudio)
-├── Formatting/                     RuleBasedFormatter, on-device FoundationModelFormatter
-├── Dictionary/DictionaryStore.swift
-├── UI/
-│   ├── DesignSystem.swift          every colour, size, glass and motion token
-│   ├── Components.swift            cards, chips, waveform, record button
-│   ├── MainWindow.swift            sidebar, transcriptions, recorder bar
-│   ├── DictionaryPanel.swift, SettingsWindow.swift, ComparisonWindow.swift
-│   ├── HUDPanel.swift              non-activating panel, positioned under the notch
-│   └── HUDView.swift               the pill: waveform + live transcript
-└── Support/                        Settings, Permissions, RunLog, Log
-```
-
----
-
-## Speech engine
-
-Default is Apple's **`SpeechAnalyzer` / `SpeechTranscriber`**, new in macOS 26: no
-dependency, no bundled model, no cloud path, real streaming with `.volatileResults` so
-text appears while you're still talking. The OS downloads and manages model assets, so the
-first run for a locale may pause on `AssetInstallationRequest`.
-
-The intended upgrade is **Parakeet v3** via FluidAudio (CoreML on the Neural Engine) —
-measurably better English WER, ~110× realtime, ~66 MB resident. Implementing
-`TranscriptionEngine` is the entire cost of switching; `DictationController` doesn't
-change.
-
-| | Apple SpeechTranscriber | Parakeet v3 (FluidAudio) | Whisper large-v3 (WhisperKit) |
-|---|---|---|---|
-| Dependency | none | SwiftPM | SwiftPM |
-| Model download | OS-managed | ~600 MB | ~1.5 GB |
-| English accuracy | good | best | good |
-| Languages | many | 25 | 99 |
-| Latency | low | ~80 ms | 200–500 ms |
-
----
-
-## Not built yet
-
-1. **LLM cleanup tier.** `RuleBasedFormatter` strips fillers, fixes spacing, capitalizes
-   sentences and adds terminal punctuation — genuinely useful, entirely deterministic. The
-   real win is a second `TextFormatter` backed by Apple's on-device Foundation Models
-   (macOS 26) for tone, list formatting, and honoring spoken corrections, with Claude as an
-   optional higher-quality tier.
-2. **Command Mode.** Select text, hold a second hotkey, say "make this more formal."
-   Needs AX read of `kAXSelectedTextAttribute` plus an LLM round-trip.
-3. **Personal dictionary.** Names and jargon the ASR keeps missing. `SpeechAnalyzer`
-   supports this through `AnalysisContext` / `SFCustomLanguageModelData`.
-5. **Onboarding.** A first-run window that walks through both permissions instead of
-   relying on the menu's "Grant…" items.
-6. **Developer ID signing + notarization.** Ends the TCC-reset churn and makes the app
-   distributable.
-
----
-
-## Verified
-
-Checked on a MacBook Air (notch, macOS 27) with synthetic fn events, screenshots, and
-`/usr/bin/log show --predicate 'subsystem == "com.notype.app"'`:
-
-- Builds under Swift 6 strict concurrency; the dictionary vector tests pass.
-- Signed with an Apple Development certificate, the Accessibility grant survives rebuild
-  and reinstall, and the hotkey arms within a second of a fresh grant without a relaunch.
-- Runs as a menu bar app with no Dock icon.
-- Real speech: fn held 9.2 s, text ready 0.1 s after release, cleaned up and pasted.
-- A press with no speech is discarded after 6 s and nothing is typed.
-- The pill's top edge sits 8 pt below the notch, centred on it.
-- Comparison runs Apple and Parakeet on the same recording once Parakeet is installed.
-
-Not verified by the automated run: the "new line" command spoken aloud (the code path is
-in `RuleBasedFormatter`).
-
-> `log` may be shadowed in your shell; use `/usr/bin/log` explicitly or it returns nothing.
+NoType started as a fork of [murmur-youtube](https://github.com/per-simmons/murmur-youtube)
+by Pat Simmons, who wrote the dictation engine, the dictionary and the Windows app. This
+version renames it, rebuilds the macOS interface and adds the fixes listed in the release
+notes.
