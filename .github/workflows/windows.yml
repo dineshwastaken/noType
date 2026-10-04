@@ -8,8 +8,9 @@ on:
   push:
     branches: [main]
     paths: ['windows/**', 'shared/**', '.github/workflows/windows.yml']
+  # Every pull request runs this check, whatever it touches: branch protection requires it,
+  # and a check that never starts would block the merge.
   pull_request:
-    paths: ['windows/**', 'shared/**', '.github/workflows/windows.yml']
   workflow_dispatch:
 
 permissions:

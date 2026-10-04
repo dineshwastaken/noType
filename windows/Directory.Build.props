@@ -41,8 +41,8 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
 
-    <Company>Pivot Studio</Company>
+    <Company>Dinesh Bandaru</Company>
     <Product>NoType</Product>
-    <Copyright>Copyright © Pat Simmons</Copyright>
+    <Copyright>Copyright © 2026 Dinesh Bandaru</Copyright>
   </PropertyGroup>
 </Project>

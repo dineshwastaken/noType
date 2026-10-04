@@ -90,8 +90,6 @@ Punctuation comes from speaking naturally, and filler words like "um" are remove
   [docs/PARAKEET-WINDOWS.md](docs/PARAKEET-WINDOWS.md): the Windows app in depth.
 - [AGENTS.md](AGENTS.md): read this before changing the code.
 
-## Credits
+## License
 
-NoType started as a fork of [murmur-youtube](https://github.com/per-simmons/murmur-youtube)
-by Pat Simmons, who wrote the dictation engine, the dictionary and the Windows app. NoType
-builds on that work with its own macOS interface.
+MIT. See [LICENSE](LICENSE).
