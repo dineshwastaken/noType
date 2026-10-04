@@ -22,16 +22,34 @@ enum EngineComparison {
         onResult: @MainActor (ComparisonResult) -> Void = { _ in }
     ) async -> [ComparisonResult] {
         var results: [ComparisonResult] = []
+
+        // Never start Parakeet's one-time ~470 MB download from inside a comparison: the
+        // recording is already over, so the user would sit on a spinner for minutes with no
+        // progress and nothing to show for it. Report it as not installed instead; the menu
+        // bar's "Download Parakeet models…" installs it deliberately.
+        var engines: [(String, any TranscriptionEngine)] = [("Apple", AppleSpeechEngine())]
+        if ParakeetModels.isDownloaded {
+            engines.append(("Parakeet", ParakeetEngine()))
+        }
+
         // Sequential, not concurrent: two engines racing for the ANE and CPU would
         // contaminate each other's timings. So this is not a live race — each engine is
         // timed in isolation and the *measured* durations are what get compared.
-        for (name, engine) in [
-            ("Apple", AppleSpeechEngine() as any TranscriptionEngine),
-            ("Parakeet", ParakeetEngine() as any TranscriptionEngine),
-        ] {
+        for (name, engine) in engines {
             let result = await measure(name: name, engine: engine, chunks: chunks)
             results.append(result)
             await onResult(result)
+        }
+
+        if !ParakeetModels.isDownloaded {
+            Log.speech.info("compare · Parakeet skipped — models not installed")
+            let skipped = ComparisonResult(
+                engine: "Parakeet",
+                text: "⚠️ Not installed — choose “Download Parakeet models…” in the menu bar, then compare again.",
+                seconds: 0
+            )
+            results.append(skipped)
+            await onResult(skipped)
         }
         return results
     }

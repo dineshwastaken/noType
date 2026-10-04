@@ -230,7 +230,7 @@ private struct MenuContent: View {
 
         // Downloading ~470 MB on the first hold would look like a hang, so offer to do it
         // deliberately instead.
-        if settings.engine == .parakeet {
+        if settings.engine == .parakeet || settings.compareMode {
             Button(parakeetStatus) { preloadParakeet() }
                 .disabled(isPreloadingParakeet || parakeetOnDisk)
         }

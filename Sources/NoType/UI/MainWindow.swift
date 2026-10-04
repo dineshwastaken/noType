@@ -176,7 +176,9 @@ private struct RecorderBar: View {
         switch controller.state {
         case .idle, .error: "Hold the key anywhere, or click the mic"
         case .starting, .listening: "Release the key or click stop when done"
-        case .finishing: "Cleaning up and inserting…"
+        case .finishing: settings.compareMode
+            ? "Comparing engines — nothing is typed"
+            : "Cleaning up and inserting…"
         }
     }
 

@@ -108,16 +108,21 @@ actor ParakeetEngine: TranscriptionEngine {
 actor ParakeetModels {
     static let shared = ParakeetModels()
 
-    /// Whether the models are already on disk, checked without loading them.
+    /// Whether a *complete* model set is on disk, checked without loading it.
     ///
     /// `nonisolated` and filesystem-based on purpose: the menu needs this synchronously
     /// while drawing, and an in-memory "have I loaded yet" flag would wrongly report
     /// "not downloaded" on every fresh launch.
+    ///
+    /// Delegates to FluidAudio's own check (every model plus the vocabulary). Checking for
+    /// the encoder alone reported an interrupted download — encoder and decoder written,
+    /// the rest missing — as installed.
     nonisolated static var isDownloaded: Bool {
-        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        let encoder = support
-            .appendingPathComponent("FluidAudio/Models/parakeet-tdt-0.6b-v3/Encoder.mlmodelc")
-        return FileManager.default.fileExists(atPath: encoder.path)
+        AsrModels.modelsExist(
+            at: AsrModels.defaultCacheDirectory(for: .v3),
+            version: .v3,
+            encoderPrecision: .int8
+        )
     }
 
     private var loaded: AsrManager?

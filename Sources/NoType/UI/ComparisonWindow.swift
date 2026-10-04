@@ -148,13 +148,18 @@ private struct ComparisonCard: View {
     /// Fastest first. The engines are *measured* sequentially, so arrival order reflects
     /// which ran first, not which is quicker — sorting by measured time is what makes the
     /// winner readable at a glance.
+    ///
+    /// Only engines that actually produced a result are ranked; a skipped or failed engine
+    /// records 0s and would otherwise be crowned fastest. Those rows follow, unranked.
     private var ranked: [DictationRun] {
-        runs.sorted { $0.processSeconds < $1.processSeconds }
+        completed.sorted { $0.processSeconds < $1.processSeconds } + runs.filter(\.isFailedComparison)
     }
+
+    private var completed: [DictationRun] { runs.filter { !$0.isFailedComparison } }
 
     /// How much faster the winner was, once both are in.
     private var margin: String? {
-        guard runs.count > 1,
+        guard completed.count > 1,
               let best = ranked.first,
               let worst = ranked.last,
               best.processSeconds > 0
@@ -168,8 +173,9 @@ private struct ComparisonCard: View {
     /// Case and punctuation are normalized away: Apple auto-punctuates and Parakeet
     /// doesn't, and that's a formatting difference, not a recognition error.
     private var verdict: (String, Color) {
-        if Set(runs.map(\.text)).count == 1 { return ("identical", .green) }
-        let normalized = Set(runs.map {
+        if completed.count < 2 { return ("one engine", .secondary) }
+        if Set(completed.map(\.text)).count == 1 { return ("identical", .green) }
+        let normalized = Set(completed.map {
             $0.text.lowercased().split { !$0.isLetter && !$0.isNumber }.joined(separator: " ")
         })
         return normalized.count == 1 ? ("same words", .green) : ("words differ", .purple)
@@ -220,7 +226,7 @@ private struct ComparisonCard: View {
 
             Divider()
             ForEach(Array(ranked.enumerated()), id: \.offset) { index, run in
-                EngineRow(run: run, rank: index + 1, showRank: runs.count > 1)
+                EngineRow(run: run, rank: index + 1, showRank: completed.count > 1 && !run.isFailedComparison)
             }
         }
         .padding(16)
@@ -279,4 +285,9 @@ private struct SingleCard: View {
         .padding(13)
         .background(CardBackground())
     }
+}
+
+private extension DictationRun {
+    /// `EngineComparison` files an engine that failed or was skipped with this marker.
+    var isFailedComparison: Bool { text.hasPrefix("⚠️") }
 }
