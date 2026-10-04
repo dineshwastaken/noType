@@ -74,11 +74,13 @@ final class DictationController {
     /// Accidental-press guard. If the mic opens and hears nothing that sounds like a voice
     /// within `silenceTimeout`, the recording is discarded and the HUD closes on its own —
     /// covering a brushed key, a key-up the tap never saw, or the mic button left running.
-    /// `voiceLevel` is on the 0…1 meter scale (≈ −35 dBFS): speech sits well above it, a
-    /// quiet room well below.
+    /// `voiceLevel` is on the 0…1 meter scale (0.15 ≈ −42 dBFS): low enough for a quiet
+    /// headset mic, above a quiet room's floor. Each recording's peak is logged so this can
+    /// be tuned against a real microphone rather than guessed.
     static let silenceTimeout: Duration = .seconds(6)
-    static let voiceLevel: Float = 0.3
+    static let voiceLevel: Float = 0.15
     private var heardVoice = false
+    private var peakLevel: Float = 0
     private var silenceTask: Task<Void, Never>?
 
     /// Compare mode only: the recording, kept so every engine sees identical audio.
@@ -235,6 +237,7 @@ final class DictationController {
         guard state.isActive, state != .finishing else { return }
         silenceTask?.cancel()
         silenceTask = nil
+        Log.audio.info("peak input level \(self.peakLevel, format: .fixed(precision: 2), privacy: .public)")
         state = .finishing
         capture.stop()
         level = 0
@@ -427,11 +430,13 @@ final class DictationController {
     /// Light smoothing so the waveform glides instead of strobing at buffer rate.
     private func updateLevel(_ new: Float) {
         level += (new - level) * 0.35
+        peakLevel = max(peakLevel, new)
         if level >= Self.voiceLevel { heardVoice = true }
     }
 
     private func armSilenceTimeout() {
         heardVoice = false
+        peakLevel = 0
         silenceTask?.cancel()
         silenceTask = Task { @MainActor [weak self] in
             try? await Task.sleep(for: Self.silenceTimeout)

@@ -174,7 +174,9 @@ struct Waveform: View {
         // Center-weighted envelope so the shape reads as a voice, not a bar chart.
         let center = Double(barCount - 1) / 2
         let envelope = 1 - pow(abs(Double(index) - center) / (center + 1), 2) * DS.Motion.waveformEnvelope
-        let amplitude = Swift.max(0.06, Double(level))
+        // Perceptual curve: quiet speech still visibly moves the bars, loud speech doesn't
+        // pin them.
+        let amplitude = Swift.max(0.06, pow(Double(level), DS.Motion.waveformGamma))
         let scaled = amplitude * envelope * (0.55 + 0.45 * wave)
         return floor + CGFloat(Swift.max(0, scaled)) * (maxHeight - floor)
     }

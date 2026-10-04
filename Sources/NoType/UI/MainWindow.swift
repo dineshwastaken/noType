@@ -137,6 +137,8 @@ private struct RecorderBar: View {
         if isRecording {
             Text(timerText)
                 .font(DS.Font.timer)
+                .lineLimit(1)
+                .fixedSize()
                 .foregroundStyle(DS.Color.record)
                 .contentTransition(.numericText())
                 .transition(.blurReplace)

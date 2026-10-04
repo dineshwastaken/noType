@@ -74,6 +74,11 @@ enum DS {
         /// things you can actually press; controls *inside* a glass surface are fills, never a
         /// second glass layer.
         static let passive = SwiftUI.Glass.regular
+        /// The pill under the notch. Smoke-tinted like the Dynamic Island, so it reads as part
+        /// of the notch it drops out of and stays legible over any wallpaper or window — plain
+        /// glass takes its brightness from whatever is behind it, which a floating overlay
+        /// can't predict.
+        static let hud = SwiftUI.Glass.regular.tint(SwiftUI.Color.black.opacity(0.62))
     }
 
     // MARK: - Type
@@ -93,7 +98,7 @@ enum DS {
         static let eyebrowTracking: CGFloat = 0.6
 
         /// Timers and latencies. Rounded + monospaced digits so they don't jitter.
-        static let timer = SwiftUI.Font.system(size: 22, weight: .semibold, design: .rounded).monospacedDigit()
+        static let timer = SwiftUI.Font.system(size: 17, weight: .semibold, design: .rounded).monospacedDigit()
         static let metric = SwiftUI.Font.system(size: 11, weight: .medium, design: .rounded).monospacedDigit()
 
         /// The HUD's live transcript.
@@ -150,7 +155,9 @@ enum DS {
         }
         /// Fixed slots in the recorder capsule, so it never resizes as text changes.
         static let barStatusWidth: CGFloat = 220
-        static let barTrailingWidth: CGFloat = 48
+        /// Wide enough for "00:00" in `Font.timer`; the text is also fixed-size so it can
+        /// never wrap.
+        static let barTrailingWidth: CGFloat = 64
 
         // HUD — the pill under the notch.
         static let hudWidth: CGFloat = 340
@@ -213,6 +220,8 @@ enum DS {
         /// Waveform ripple speed (radians per second) and frame cap.
         static let waveSpeed: Double = 7
         static let waveformEnvelope: Double = 0.7
+        /// Exponent applied to the 0…1 level before drawing; < 1 lifts quiet input.
+        static let waveformGamma: Double = 0.5
         static let waveFrameRate: Double = 60
     }
 }

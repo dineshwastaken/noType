@@ -55,7 +55,9 @@ struct HUDView: View {
         .padding(.leading, DS.Space.snug)
         .padding(.trailing, DS.Space.wide)
         .frame(width: DS.Size.hudWidth, height: DS.Size.hudHeight)
-        .glassEffect(DS.Glass.passive, in: .capsule)
+        .glassEffect(DS.Glass.hud, in: .capsule)
+        // Always the dark scheme, matching the smoke-tinted glass and the notch above it.
+        .environment(\.colorScheme, .dark)
     }
 
     private var isError: Bool {
