@@ -24,10 +24,15 @@ CONTENTS := $(BUNDLE)/Contents
 
 ## TCC keys the Accessibility grant to the code signature, so an ad-hoc signature — which
 ## changes on every build — makes the user re-grant after every `make`. Signing with a
-## stable Developer ID keeps the identity constant and the grant sticky. Falls back to
-## ad-hoc ("-") on a machine without the cert.
-SIGN_ID := $(shell security find-identity -v -p codesigning 2>/dev/null \
-             | grep "Developer ID Application" | head -1 | sed -E 's/.*"(.*)".*/\1/')
+## stable identity keeps it constant and the grant sticky. Prefers Developer ID, then the
+## free "Apple Development" cert Xcode creates when you sign in with an Apple ID
+## (Xcode ▸ Settings ▸ Accounts). Falls back to ad-hoc ("-") on a machine with neither.
+FIND_ID  = security find-identity -v -p codesigning 2>/dev/null | grep "$(1)" | head -1 \
+             | sed -E 's/.*"(.*)".*/\1/'
+SIGN_ID := $(shell $(call FIND_ID,Developer ID Application))
+ifeq ($(strip $(SIGN_ID)),)
+SIGN_ID := $(shell $(call FIND_ID,Apple Development))
+endif
 ifeq ($(strip $(SIGN_ID)),)
 SIGN_ID := -
 endif

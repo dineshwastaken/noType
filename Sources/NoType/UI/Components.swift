@@ -100,9 +100,9 @@ struct CopyButton: View {
     }
 }
 
-/// The round glass record button: brand-tinted glass at rest, red glass while recording,
-/// with the glyph morphing between mic and stop. Sized explicitly so it lines up exactly with
-/// the recorder capsule beside it.
+/// The round record button: a solid brand-tinted circle at rest, red while recording, with
+/// the glyph morphing between mic and stop. It sits *inside* the recorder's glass capsule,
+/// so it is a fill rather than a second glass layer.
 struct RecordButton: View {
     let isRecording: Bool
     let action: () -> Void
@@ -114,12 +114,22 @@ struct RecordButton: View {
                 .foregroundStyle(.white)
                 .contentTransition(.symbolEffect(.replace))
                 .frame(width: DS.Size.recordButton, height: DS.Size.recordButton)
+                .background(Circle().fill(isRecording ? DS.Color.record : DS.Color.accent))
                 .contentShape(.circle)
         }
-        .buttonStyle(.plain)
-        .glassEffect(isRecording ? DS.Glass.recordActive : DS.Glass.recordIdle, in: .circle)
+        .buttonStyle(PressScaleStyle())
         .help(isRecording ? "Stop recording" : "Start recording")
         .accessibilityLabel(isRecording ? "Stop recording" : "Start recording")
+    }
+}
+
+/// The system's press response for custom controls: a slight shrink and dim, sprung back.
+struct PressScaleStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? DS.Motion.pressScale : 1)
+            .brightness(configuration.isPressed ? DS.Motion.pressDim : 0)
+            .animation(DS.Motion.snappy, value: configuration.isPressed)
     }
 }
 

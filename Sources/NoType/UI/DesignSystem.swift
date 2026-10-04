@@ -70,17 +70,10 @@ enum DS {
 
     /// Liquid Glass variants. Views ask for a role, not a recipe.
     enum Glass {
-        /// Floating controls: the recorder bar, the HUD.
-        static let control = SwiftUI.Glass.regular.interactive()
-        /// The record button while idle.
-        static let recordIdle = SwiftUI.Glass.regular.tint(DS.Color.accent.opacity(0.85)).interactive()
-        /// The record button while recording.
-        static let recordActive = SwiftUI.Glass.regular.tint(DS.Color.record.opacity(0.9)).interactive()
         /// Non-interactive surfaces (recorder capsule, HUD). Interactive glass is reserved for
-        /// things you can actually press.
+        /// things you can actually press; controls *inside* a glass surface are fills, never a
+        /// second glass layer.
         static let passive = SwiftUI.Glass.regular
-        /// Spacing within which neighbouring glass shapes blend into one another.
-        static let mergeSpacing: CGFloat = 16
     }
 
     // MARK: - Type
@@ -141,8 +134,11 @@ enum DS {
     // MARK: - Size
 
     enum Size {
-        /// Height of the record button *and* the recorder capsule beside it — they must match.
-        static let recordButton: CGFloat = 52
+        /// The recorder capsule, and the record button inset inside it. Concentric:
+        /// `barHeight - 2 * barInset == recordButton`.
+        static let barHeight: CGFloat = 56
+        static let barInset: CGFloat = 6
+        static let recordButton: CGFloat = 44
         static let iconButton: CGFloat = 26
         static let waveformHeight: CGFloat = 28
         static let waveformBarWidth: CGFloat = 3
@@ -153,8 +149,8 @@ enum DS {
             CGFloat(bars) * waveformBarWidth + CGFloat(bars - 1) * waveformBarGap
         }
         /// Fixed slots in the recorder capsule, so it never resizes as text changes.
-        static let barStatusWidth: CGFloat = 250
-        static let barTrailingWidth: CGFloat = 56
+        static let barStatusWidth: CGFloat = 220
+        static let barTrailingWidth: CGFloat = 48
 
         // HUD — the pill under the notch.
         static let hudWidth: CGFloat = 340
@@ -197,6 +193,9 @@ enum DS {
     enum Motion {
         /// Glass morphs, selection moves, rows appear.
         static let spring = Animation.spring(response: 0.38, dampingFraction: 0.82)
+        /// Button press response.
+        static let pressScale: CGFloat = 0.92
+        static let pressDim: Double = -0.06
         /// Quick state changes: hover, copy confirmation.
         static let snappy = Animation.snappy(duration: 0.2)
         /// Live text updates in the HUD.

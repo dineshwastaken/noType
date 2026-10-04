@@ -65,10 +65,10 @@ struct MainWindow: View {
 /// Record / stop, the live waveform, status and timer, floating on glass at the bottom of
 /// the detail column.
 ///
-/// Two glass shapes of identical height — the round record button and the status capsule —
-/// share one `GlassEffectContainer`, so they read as a single control and blend at the seam.
-/// Every slot has a fixed width: the bar never resizes as the status text or timer changes,
-/// so it stays centered with no stretched gaps.
+/// One glass capsule holding everything, with the record button as a solid tinted circle
+/// inset concentrically at its leading end (capsule height − 2 × inset = button size). One
+/// shape rather than two means no glass-on-glass and no merge "neck" between neighbours.
+/// Every slot has a fixed width, so the bar never resizes as the status text or timer changes.
 private struct RecorderBar: View {
     @Bindable var controller: DictationController
     @State private var settings = Settings.shared
@@ -79,47 +79,44 @@ private struct RecorderBar: View {
     private var isRecording: Bool { controller.state.isActive }
 
     var body: some View {
-        GlassEffectContainer(spacing: DS.Glass.mergeSpacing) {
-            HStack(spacing: DS.Space.snug) {
-                RecordButton(isRecording: isRecording) {
-                    if isRecording {
-                        controller.stopButtonRecording()
-                    } else {
-                        controller.startButtonRecording()
-                    }
+        HStack(spacing: DS.Space.base) {
+            RecordButton(isRecording: isRecording) {
+                if isRecording {
+                    controller.stopButtonRecording()
+                } else {
+                    controller.startButtonRecording()
                 }
-
-                HStack(spacing: DS.Space.base) {
-                    Waveform(
-                        level: controller.level,
-                        isActive: controller.state == .listening,
-                        barCount: DS.Size.barWaveformBars,
-                        tint: isRecording ? DS.Color.record : DS.Color.accent
-                    )
-                    .frame(width: DS.Size.waveformWidth(bars: DS.Size.barWaveformBars),
-                           height: DS.Size.waveformHeight)
-
-                    VStack(alignment: .leading, spacing: DS.Space.hair) {
-                        Text(status)
-                            .font(DS.Font.bodyEmphasis)
-                            .foregroundStyle(isError ? DS.Color.record : DS.Color.ink)
-                            .lineLimit(1)
-                            .truncationMode(.head)
-                        Text(detail)
-                            .font(DS.Font.caption)
-                            .foregroundStyle(DS.Color.inkSecondary)
-                            .lineLimit(1)
-                    }
-                    .frame(width: DS.Size.barStatusWidth, alignment: .leading)
-
-                    trailing
-                        .frame(width: DS.Size.barTrailingWidth, alignment: .trailing)
-                }
-                .padding(.horizontal, DS.Space.wide)
-                .frame(height: DS.Size.recordButton)
-                .glassEffect(DS.Glass.passive, in: .capsule)
             }
+
+            Waveform(
+                level: controller.level,
+                isActive: controller.state == .listening,
+                barCount: DS.Size.barWaveformBars,
+                tint: isRecording ? DS.Color.record : DS.Color.accent
+            )
+            .frame(width: DS.Size.waveformWidth(bars: DS.Size.barWaveformBars),
+                   height: DS.Size.waveformHeight)
+
+            VStack(alignment: .leading, spacing: DS.Space.hair) {
+                Text(status)
+                    .font(DS.Font.bodyEmphasis)
+                    .foregroundStyle(isError ? DS.Color.record : DS.Color.ink)
+                    .lineLimit(1)
+                    .truncationMode(.head)
+                Text(detail)
+                    .font(DS.Font.caption)
+                    .foregroundStyle(DS.Color.inkSecondary)
+                    .lineLimit(1)
+            }
+            .frame(width: DS.Size.barStatusWidth, alignment: .leading)
+
+            trailing
+                .frame(width: DS.Size.barTrailingWidth, alignment: .trailing)
         }
+        .padding(.leading, DS.Size.barInset)
+        .padding(.trailing, DS.Space.wide)
+        .frame(height: DS.Size.barHeight)
+        .glassEffect(DS.Glass.passive, in: .capsule)
         .animation(DS.Motion.spring, value: isRecording)
         .onChange(of: isRecording) { _, active in
             startedAt = active ? Date() : nil
