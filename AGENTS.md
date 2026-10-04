@@ -77,9 +77,12 @@ as one ranking.
 asserts it. Use `await MainActor.run` from any non-main-actor context. This took the app
 down once already.
 
-**Mutating `@State` inside a `Canvas` draw closure floods the log and corrupts state.** The
-VU meter keeps its needle physics in a plain reference type the view merely holds, which is
-invisible to SwiftUI's state graph. Don't "clean that up" into `@State`.
+**Never mutate `@State` while a view is drawing.** Changing state inside a `Canvas` draw
+closure or a `TimelineView` body is a mutation during view update: SwiftUI logs it as
+undefined behaviour and, at display refresh rates, floods the process. The `Waveform`
+derives every bar from the current time and level instead of storing animation state; keep
+it that way. Per-frame physics, if you ever need it, goes in a plain reference type the view
+holds, which is invisible to SwiftUI's state graph.
 
 ---
 
@@ -192,6 +195,8 @@ lookahead, `\p{L}`, and `$1`–`$9` in replacements. Nothing else.
    distribution, so Windows users will meet SmartScreen.
 4. **An installer** for Windows, and model download from inside the app rather than by
    following `docs/PARAKEET-WINDOWS.md` by hand.
+5. **Built-in "next line", "bullet point" and "scratch that"** commands that don't depend on
+   Smart cleanup.
 
 ## What no amount of CI can verify
 
